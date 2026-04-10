@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌅 Pawai Selebrasi Paskah - Remaja GMIM Zaitun Karoweru</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; overflow: hidden; }
+        #map { height: 100vh; width: 100%; }
+
+        /* ===== THEME CSS VARIABLES ===== */
+        :root {
+            --panel-bg: linear-gradient(180deg, rgba(10,28,8,0.97) 0%, rgba(18,35,12,0.97) 100%);
+            --panel-border: rgba(255,215,0,0.3);
+            --header-bg: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(76,175,80,0.15));
+            --accent: #FFD700;
+            --accent2: #4CAF50;
+            --accent-light: #FFF9C4;
+            --accent-soft: rgba(255,215,0,0.35);
+            --text-primary: #FFD700;
+            --text-secondary: #A5D6A7;
+            --text-muted: #88aa77;
+            --text-desc: #C8E6C9;
+            --glow-color: rgba(255,215,0,0.5);
+            --badge-bg: rgba(255,215,0,0.35);
+            --route-main: #FFD700;
+            --route-glow: #FFA000;
+            --route-dash: rgba(255,249,196,0.5);
+            --btn-primary: linear-gradient(135deg, #FFD700, #FFA000);
+            --btn-add: linear-gradient(135deg, #4CAF50, #2E7D32);
+            --station-color: #FFD700;
+            --station-active-bg: rgba(255,215,0,0.18);
+            --station-active-border: #FFD700;
+            --station-hover-bg: rgba(255,215,0,0.1);
+            --progress-fill: linear-gradient(90deg, #FFD700, #FFA000);
+            --speed-active-bg: rgba(255,215,0,0.35);
+            --speed-active-border: #FFD700;
+        }
+        /* Jumat Agung theme */
+        :root.theme-jumatagung {
+            --panel-bg: linear-gradient(180deg, rgba(12,8,22,0.97) 0%, rgba(18,10,32,0.97) 100%);
+            --panel-border: rgba(138,92,200,0.25);
+            --header-bg: linear-gradient(135deg, rgba(106,27,154,0.25), rgba(186,104,255,0.1));
+            --accent: #AB47BC;
+            --accent2: #7B1FA2;
+            --accent-light: #E1BEE7;
+            --accent-soft: rgba(138,92,200,0.35);
+            --text-primary: #D4A5FF;
+            --text-secondary: #BA68C8;
+            --text-muted: #8877aa;
+            --text-desc: #c4a8d4;
+            --glow-color: rgba(138,92,200,0.5);
+            --badge-bg: rgba(138,92,200,0.35);
+            --route-main: #AB47BC;
+            --route-glow: #CE93D8;
+            --route-dash: rgba(225,190,231,0.5);
+            --btn-primary: linear-gradient(135deg, #AB47BC, #7B1FA2);
+            --btn-add: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            --station-color: #9C27B0;
+            --station-active-bg: rgba(138,92,200,0.18);
+            --station-active-border: #AB47BC;
+            --station-hover-bg: rgba(138,92,200,0.1);
+            --progress-fill: linear-gradient(90deg, #7B1FA2, #CE93D8);
+            --speed-active-bg: rgba(138,92,200,0.35);
+            --speed-active-border: #AB47BC;
+        }
+
+        /* ===== PANEL KIRI ===== */
+        .panel-left {
+            position: absolute; top: 0; left: 0; z-index: 1000;
+            width: 380px; height: 100vh;
+            background: var(--panel-bg);
+            color: white; display: flex; flex-direction: column;
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--panel-border);
+        }
+        .panel-header {
+            padding: 18px 20px;
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--panel-border);
+            text-align: center;
+        }
+        .panel-header h1 { font-family: 'Cinzel', serif; color: var(--text-primary); font-size: 18px; text-shadow: 0 0 20px var(--glow-color); letter-spacing: 2px; }
+        .panel-header .subtitle { color: var(--text-secondary); font-size: 12px; margin-top: 4px; opacity: 0.8; }
+
+        /* Theme switcher */
+        .theme-switcher {
+            display: flex; gap: 4px; justify-content: center; margin-top: 8px;
+        }
+        .theme-btn {
+            padding: 4px 12px; border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 14px; font-size: 10px; cursor: pointer;
+            background: rgba(255,255,255,0.08); color: #ccc;
+            transition: all 0.3s; font-weight: 600;
+        }
+        .theme-btn:hover { background: rgba(255,255,255,0.15); }
+        .theme-btn.active { background: var(--accent-soft); color: var(--text-primary); border-color: var(--accent); }
+
+        /* Confetti canvas for Easter */
+        #confettiCanvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9998;
+        }
+        .panel-header .mode-badge {
+            display: inline-block; margin-top: 8px; padding: 4px 14px;
+            background: rgba(76,175,80,0.25); border: 1px solid #4CAF50;
+            border-radius: 20px; font-size: 11px; color: #81C784; letter-spacing: 1px;
+        }
+
+        /* Controls */
+        .controls { padding: 12px 16px; border-bottom: 1px solid var(--panel-border); display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+        .btn {
+            padding: 9px 14px; border: none; border-radius: 8px; cursor: pointer;
+            font-size: 12px; font-weight: 600; transition: all 0.3s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .btn:active { transform: translateY(0); }
+        .btn-export { background: linear-gradient(135deg, #4CAF50, #388E3C); color: white; }
+        .btn-add { background: var(--btn-add); color: white; }
+        .btn-reset { background: linear-gradient(135deg, #78909C, #546E7A); color: white; }
+        .btn-play { background: var(--btn-primary); color: white; }
+        .btn-pause { background: linear-gradient(135deg, #f44336, #c62828); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #f44336, #c62828); color: white; font-size: 11px; padding: 5px 8px; }
+
+        .speed-controls { display: flex; gap: 4px; width: 100%; justify-content: center; margin-top: 5px; }
+        .btn-speed {
+            padding: 6px 14px; background: rgba(255,255,255,0.1); color: #ccc;
+            font-size: 12px; border: 1px solid rgba(255,255,255,0.15);
+        }
+        .btn-speed.active { background: var(--speed-active-bg); color: var(--text-primary); border-color: var(--accent); }
+
+        /* Current station info */
+        .info-box { padding: 10px 16px; border-bottom: 1px solid var(--panel-border); display: none; }
+        .info-box.visible { display: block; }
+        .current-station {
+            background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(76,175,80,0.08));
+            border: 1px solid var(--panel-border); border-radius: 10px; padding: 10px 14px;
+        }
+        .current-station .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-secondary); margin-bottom: 4px; }
+        .current-station .name { font-size: 15px; font-weight: 700; color: var(--text-primary); font-family: 'Cinzel', serif; }
+        .current-station .desc { font-size: 12px; color: var(--text-desc); margin-top: 3px; }
+        .current-station .coords { font-size: 10px; color: var(--text-muted); margin-top: 5px; font-family: monospace; }
+
+        .progress-section { padding: 8px 16px; border-bottom: 1px solid var(--panel-border); display: none; }
+        .progress-section.visible { display: block; }
+        .progress-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--progress-fill); border-radius: 3px; width: 0%; transition: width 0.3s; }
+        .progress-text { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+
+        /* Instructions */
+        .instructions {
+            padding: 10px 16px; border-bottom: 1px solid var(--panel-border);
+            font-size: 11px; color: var(--text-muted); line-height: 1.6;
+        }
+        .instructions span { color: var(--text-primary); }
+
+        /* Station List */
+        .station-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .station-list::-webkit-scrollbar { width: 4px; }
+        .station-list::-webkit-scrollbar-track { background: transparent; }
+        .station-list::-webkit-scrollbar-thumb { background: rgba(138,92,200,0.3); border-radius: 2px; }
+
+        .station-item {
+            padding: 10px 12px; margin: 3px 0;
+            background: rgba(255,255,255,0.03); border-radius: 8px;
+            font-size: 12px; cursor: pointer; transition: all 0.3s;
+            border-left: 3px solid transparent;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .station-item:hover { background: var(--station-hover-bg); }
+        .station-item.active { background: var(--station-active-bg); border-left-color: var(--station-active-border); }
+        .station-item.dragging-active { background: rgba(76,175,80,0.15); border-left-color: #4CAF50; }
+
+        .station-badge {
+            min-width: 26px; height: 26px;
+            background: var(--badge-bg); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 10px; color: var(--text-primary); flex-shrink: 0;
+        }
+        .station-info { flex: 1; min-width: 0; }
+        .station-info .sname { font-weight: 600; color: #e8daf0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .station-info .sloc { color: var(--text-muted); font-size: 10px; margin-top: 2px; font-family: monospace; }
+        .station-info .swaypoints { color: var(--text-secondary); font-size: 10px; margin-top: 1px; }
+
+        .station-actions { display: flex; gap: 4px; flex-shrink: 0; }
+        .station-actions button {
+            width: 24px; height: 24px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; background: rgba(255,255,255,0.08); color: #ccc;
+        }
+        .station-actions button:hover { background: rgba(255,255,255,0.2); }
+        .station-actions .btn-del { color: #f44336; }
+        .station-actions .btn-del:hover { background: rgba(244,67,54,0.2); }
+
+        /* Waypoint segment panel */
+        .waypoint-panel {
+            padding: 10px 16px; border-bottom: 1px solid var(--panel-border);
+            background: rgba(255,215,0,0.04); display: none;
+        }
+        .waypoint-panel.visible { display: block; }
+        .waypoint-panel .wp-title { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
+        .waypoint-panel .wp-info { font-size: 11px; color: var(--text-muted); }
+        .waypoint-panel .wp-list { margin-top: 6px; }
+        .wp-item { font-size: 10px; color: #aa99bb; padding: 3px 0; font-family: monospace; display: flex; align-items: center; gap: 6px; }
+        .wp-item .wp-del { cursor: pointer; color: #f44336; font-size: 12px; }
+        .wp-item .wp-del:hover { color: #ff6659; }
+
+        /* Stats */
+        .stats-bar {
+            padding: 10px 16px; background: rgba(0,0,0,0.25);
+            display: flex; justify-content: space-around;
+            border-top: 1px solid var(--panel-border);
+        }
+        .stat-item { text-align: center; }
+        .stat-value { color: var(--text-primary); font-weight: 700; font-size: 15px; }
+        .stat-label { color: var(--text-muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(25,12,40,0.95); color: #D4A5FF; padding: 12px 24px;
+            border-radius: 10px; border: 1px solid #AB47BC; z-index: 9999;
+            font-size: 13px; box-shadow: 0 0 30px rgba(138,92,200,0.3);
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+
+        /* Export modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 2000; display: none;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: rgba(25,12,40,0.98); border: 1px solid #AB47BC; border-radius: 12px;
+            padding: 24px; max-width: 700px; width: 90%; max-height: 80vh;
+            display: flex; flex-direction: column;
+        }
+        .modal h2 { color: #D4A5FF; font-family: 'Cinzel', serif; font-size: 18px; margin-bottom: 12px; }
+        .modal textarea {
+            flex: 1; min-height: 300px; background: rgba(15,5,25,0.9); color: #CE93D8;
+            border: 1px solid rgba(138,92,200,0.2); border-radius: 8px;
+            padding: 12px; font-family: monospace; font-size: 12px; resize: none;
+        }
+        .modal .modal-actions { margin-top: 12px; display: flex; gap: 8px; justify-content: flex-end; }
+
+        /* Custom Popup */
+        .custom-popup .leaflet-popup-content-wrapper {
+            background: rgba(25,12,40,0.95); color: white; border-radius: 12px;
+            border: 2px solid #AB47BC; box-shadow: 0 0 30px rgba(138,92,200,0.3);
+        }
+        .custom-popup .leaflet-popup-tip { background: rgba(25,12,40,0.95); border: 1px solid #AB47BC; }
+        .popup-content { text-align: center; padding: 5px; min-width: 180px; }
+        .popup-content .popup-title { color: #D4A5FF; font-family: 'Cinzel', serif; font-size: 14px; margin: 4px 0; }
+        .popup-content .popup-desc { color: #c4a8d4; font-size: 12px; }
+        .popup-content .popup-loc { color: #8877aa; font-size: 10px; margin-top: 4px; font-family: monospace; }
+
+        /* Landmark popup */
+        .landmark-popup .leaflet-popup-content-wrapper {
+            background: rgba(255,255,255,0.95); color: #333; border-radius: 8px;
+            border: 1px solid #ddd; box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+        .landmark-popup .leaflet-popup-tip { background: rgba(255,255,255,0.95); }
+        .landmark-content { text-align: center; padding: 4px; min-width: 120px; }
+        .landmark-content .lm-name { font-weight: 600; color: #333; font-size: 12px; }
+        .landmark-content .lm-type { color: #888; font-size: 10px; margin-top: 2px; }
+
+        /* Direction arrow markers */
+        .arrow-icon { pointer-events: none !important; }
+        .arrow-icon div { pointer-events: none !important; }
+
+        /* Landmark label markers (like Google Maps) */
+        .landmark-label { pointer-events: auto; cursor: pointer; }
+        .landmark-label div { pointer-events: auto; }
+
+        /* Mobile */
+        .panel-toggle {
+            display: none; position: absolute; top: 10px; left: 10px; z-index: 1001;
+            background: rgba(25,12,40,0.9); color: #D4A5FF; border: 1px solid #AB47BC;
+            padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 18px;
+        }
+        @media (max-width: 768px) {
+            .panel-left { width: 100%; height: auto; max-height: 50vh; bottom: 0; top: auto; border-right: none; border-top: 2px solid rgba(138,92,200,0.3); border-radius: 16px 16px 0 0; }
+            .panel-toggle { display: block; }
+            .panel-left.hidden { transform: translateY(100%); }
+        }
+        /* Capture modal */
+        .capture-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 3000; display: none;
+            align-items: flex-start; justify-content: flex-end;
+            padding: 16px;
+        }
+        .capture-modal.show { display: flex; }
+        .capture-box {
+            background: rgba(12,8,22,0.95); border: 1px solid #AB47BC; border-radius: 16px;
+            padding: 20px; max-width: 380px; width: 100%; display: flex; flex-direction: column; gap: 10px;
+            max-height: calc(100vh - 32px); overflow-y: auto;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        }
+        .capture-box h2 { color: #D4A5FF; font-family: 'Cinzel', serif; font-size: 15px; text-align: center; }
+        .capture-box label { color: #BA68C8; font-size: 11px; font-weight: 600; }
+        .capture-box input, .capture-box select {
+            width: 100%; padding: 8px 12px; background: rgba(20,10,35,0.9); color: #E1BEE7;
+            border: 1px solid rgba(138,92,200,0.3); border-radius: 8px; font-size: 13px;
+        }
+        .capture-box .preview-img { max-width: 100%; border-radius: 6px; border: 1px solid rgba(138,92,200,0.3); display: none; margin-top: 6px; }
+        .capture-actions { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+        #map.capture-rotating { transition: transform 0.15s ease-out; transform-origin: center center; }
+    </style>
+</head>
+<body>
+    <button class="panel-toggle" onclick="togglePanel()">☰</button>
+    <canvas id="confettiCanvas"></canvas>
+    <div id="map"></div>
+
+    <div class="panel-left" id="panelLeft">
+        <div class="panel-header">
+            <h1 id="panelTitle">🌅 PAWAI PASKAH</h1>
+            <div class="subtitle" id="panelSubtitle">Selebrasi Remaja GMIM Zaitun Karoweru</div>
+            <div class="mode-badge">✏️ MODE EDIT</div>
+            <div class="theme-switcher">
+                <button class="theme-btn active" id="btnThemePaskah" onclick="setTheme('paskah')">🌅 Paskah</button>
+                <button class="theme-btn" id="btnThemeJA" onclick="setTheme('jumatagung')">✝️ Jumat Agung</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-export" onclick="exportData()">📋 Export</button>
+            <button class="btn btn-add" onclick="startAddStation()">➕ Waypoint</button>
+            <button class="btn btn-play" id="btnPlay" onclick="previewRoute()">▶ Preview</button>
+            <button class="btn btn-pause" onclick="stopPreview()">⏸ Stop</button>
+            <button class="btn btn-reset" style="background:linear-gradient(135deg,#5C6BC0,#3949AB);color:white;" onclick="openCaptureModal()">📸 Capture</button>
+            <button class="btn btn-reset" style="background:linear-gradient(135deg,#C62828,#B71C1C);color:white;" id="btnRecord" onclick="toggleRecording()">⏺ Rec</button>
+            <button class="btn btn-reset" onclick="resetRoute()">↺ Reset</button>
+            <div class="speed-controls">
+                <button class="btn btn-speed" onclick="setSpeed(1, this)">1x</button>
+                <button class="btn btn-speed active" onclick="setSpeed(2, this)">2x</button>
+                <button class="btn btn-speed" onclick="setSpeed(3, this)">3x</button>
+                <button class="btn btn-speed" onclick="setSpeed(5, this)">5x</button>
+                <button class="btn btn-speed" onclick="setSpeed(10, this)">10x</button>
+                <button class="btn btn-speed" onclick="setSpeed(20, this)">20x</button>
+                <button class="btn btn-speed" onclick="setSpeed(40, this)">40x</button>
+            </div>
+            <div class="speed-controls">
+                <button class="btn btn-speed active" id="btnBGM" onclick="toggleBGM()" style="font-size:11px;">🎵 Backsound ON</button>
+                <button class="btn btn-speed active" id="btnSFX" onclick="toggleSFX()" style="font-size:11px;">🔊 SFX ON</button>
+            </div>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-text">
+                <span id="progressStation">WP 0 / 14</span>
+                <span id="progressPercent">0%</span>
+            </div>
+        </div>
+
+        <div class="info-box" id="infoBox">
+            <div class="current-station">
+                <div class="label">📍 Posisi Pawai</div>
+                <div class="name" id="csName">Menunggu...</div>
+                <div class="desc" id="csDesc">Tekan Preview untuk memulai pawai</div>
+                <div class="coords" id="csCoords">-</div>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <span>🖱️ Drag titik</span> untuk pindahkan posisi<br>
+            <span>🔵 Klik garis</span> untuk tambah waypoint di tengah<br>
+            <span>🗑️ Klik kanan waypoint</span> untuk hapus waypoint<br>
+            <span>📋 Export</span> untuk copy data koordinat final
+        </div>
+
+        <div class="waypoint-panel" id="waypointPanel">
+            <div class="wp-title" id="wpTitle">Waypoints Segmen</div>
+            <div class="wp-info" id="wpInfo"></div>
+            <div class="wp-list" id="wpList"></div>
+        </div>
+
+        <div class="station-list" id="stationList"></div>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="statStations">15</div>
+                <div class="stat-label">Waypoint</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statDistance">0</div>
+                <div class="stat-label">Meter</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statWaypoints">0</div>
+                <div class="stat-label">Waypoints</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal">
+            <h2>📋 Export Data Rute</h2>
+            <textarea id="exportText" readonly></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-export" onclick="copyExport()">📋 Copy</button>
+                <button class="btn btn-reset" onclick="closeExportModal()">✕ Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Capture Modal -->
+    <div class="capture-modal" id="captureModal">
+        <div class="capture-box">
+            <h2>📸 Capture Peta</h2>
+            <div>
+                <label>Judul Peta</label>
+                <input type="text" id="captureTitle" value="Via Dolorosa - Ranotana Weru" placeholder="Judul" style="padding:6px 10px;font-size:12px;">
+            </div>
+            <div>
+                <label>Watermark</label>
+                <input type="text" id="captureWatermark" value="© Pawai Selebrasi Paskah - GMIM Zaitun Karoweru" placeholder="Watermark" style="padding:6px 10px;font-size:12px;">
+            </div>
+            <div style="display:flex;gap:8px;">
+                <div style="flex:1;"><label>Format</label><select id="captureFormat" style="font-size:11px;padding:5px;"><option value="png">PNG</option><option value="jpeg">JPEG</option></select></div>
+                <div style="flex:1;"><label>Kualitas</label><select id="captureQuality" style="font-size:11px;padding:5px;"><option value="2">Tinggi (2x)</option><option value="1" selected>Normal (1x)</option><option value="3">Ultra (3x)</option></select></div>
+            </div>
+
+            <div style="border:1px solid rgba(138,92,200,0.2);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+                <label style="color:#D4A5FF;font-size:11px;font-weight:700;">Layer & Tampilan</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px 12px;">
+                    <div style="display:flex;gap:4px;align-items:center;"><input type="checkbox" id="captureHideSidebar" checked><label for="captureHideSidebar" style="margin:0;cursor:pointer;font-size:10px;">Hide sidebar</label></div>
+                    <div style="display:flex;gap:4px;align-items:center;"><input type="checkbox" id="captureShowLandmarks" checked><label for="captureShowLandmarks" style="margin:0;cursor:pointer;font-size:10px;">Landmark</label></div>
+                    <div style="display:flex;gap:4px;align-items:center;"><input type="checkbox" id="captureShowArrows" checked><label for="captureShowArrows" style="margin:0;cursor:pointer;font-size:10px;">Panah</label></div>
+                    <div style="display:flex;gap:4px;align-items:center;"><input type="checkbox" id="captureShowGlow" checked><label for="captureShowGlow" style="margin:0;cursor:pointer;font-size:10px;">Glow</label></div>
+                    <div style="display:flex;gap:4px;align-items:center;"><input type="checkbox" id="captureShowDash" checked><label for="captureShowDash" style="margin:0;cursor:pointer;font-size:10px;">Dash</label></div>
+                    <div style="display:flex;gap:4px;align-items:center;"><input type="checkbox" id="captureShowTitle" checked><label for="captureShowTitle" style="margin:0;cursor:pointer;font-size:10px;">Judul</label></div>
+                    <div style="display:flex;gap:4px;align-items:center;"><input type="checkbox" id="captureShowWatermark" checked><label for="captureShowWatermark" style="margin:0;cursor:pointer;font-size:10px;">Watermark</label></div>
+                </div>
+            </div>
+
+            <div style="border:1px solid rgba(138,92,200,0.2);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+                <label style="color:#D4A5FF;font-size:11px;font-weight:700;">Rotasi & Zoom (Live Preview)</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <label style="font-size:10px;min-width:36px;">Rotasi</label>
+                    <input type="range" id="captureRotation" min="0" max="360" value="0" style="flex:1;accent-color:#AB47BC;">
+                    <span id="captureRotVal" style="color:#E1BEE7;font-size:10px;min-width:26px;">0°</span>
+                    <button class="btn btn-speed" style="font-size:9px;padding:2px 6px;" onclick="resetCaptureRotation()">0°</button>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <label style="font-size:10px;min-width:36px;align-self:center;">Zoom</label>
+                    <button class="btn btn-speed" style="font-size:9px;padding:2px 7px;" onclick="captureZoomTo('fit')">Fit All</button>
+                    <button class="btn btn-speed" style="font-size:9px;padding:2px 7px;" onclick="captureZoomTo(16)">16</button>
+                    <button class="btn btn-speed" style="font-size:9px;padding:2px 7px;" onclick="captureZoomTo(17)">17</button>
+                    <button class="btn btn-speed" style="font-size:9px;padding:2px 7px;" onclick="captureZoomTo(18)">18</button>
+                    <button class="btn btn-speed" style="font-size:9px;padding:2px 7px;" onclick="captureZoomTo(19)">19</button>
+                </div>
+            </div>
+
+            <img class="preview-img" id="capturePreviewImg">
+            <div class="capture-actions">
+                <button class="btn btn-play" style="font-size:12px;padding:8px 14px;" onclick="doCapture()">📸 Capture</button>
+                <button class="btn btn-export" id="btnDownloadCapture" style="display:none;font-size:12px;padding:8px 14px;" onclick="downloadCapture()">💾 Download</button>
+                <button class="btn btn-reset" style="font-size:12px;padding:8px 14px;" onclick="closeCaptureModal()">✕ Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    // ==========================================
+    //  DATA KOORDINAT
+    // ==========================================
+    const stationsData = [
+        { id: 0, label: "START", name: "START - Parkiran Samping Gereja", desc: "Titik keberangkatan Pawai Selebrasi Paskah", location: "Parkiran Samping Gereja", coords: [1.453599757675775, 124.84078212667191], icon: "🌅", type: "start" },
+        { id: 1, label: "WP 1", name: "Waypoint 1 - Area Parkiran", desc: "Pawai mulai bergerak ke utara", location: "Area Parkiran Gereja", coords: [1.454456305166955, 124.84110031976932], icon: "🎉", type: "station" },
+        { id: 2, label: "WP 2", name: "Waypoint 2 - Tikungan Utara", desc: "Rombongan berbelok di tikungan", location: "Tikungan Utara", coords: [1.454980, 124.841795], icon: "🎊", type: "station" },
+        { id: 3, label: "WP 3", name: "Waypoint 3 - SD GMIM 31", desc: "Melewati area sekolah", location: "Dekat SD GMIM 31", coords: [1.453965807712169, 124.84237747690884], icon: "🎵", type: "station" },
+        { id: 4, label: "WP 4", name: "Waypoint 4 - Pertigaan SD", desc: "Pawai melewati pertigaan", location: "Dekat SD GMIM 31", coords: [1.4532874272151772, 124.84264972112504], icon: "🎺", type: "station" },
+        { id: 5, label: "WP 5", name: "Waypoint 5 - Perempatan", desc: "Rombongan melewati perempatan", location: "Perempatan Jalan Baru", coords: [1.452551, 124.842548], icon: "✨", type: "station" },
+        { id: 6, label: "WP 6", name: "Waypoint 6 - Jalan Tengah", desc: "Pawai terus ke selatan", location: "Antara SD GMIM 31 & 38", coords: [1.451727, 124.842432], icon: "🕊️", type: "station" },
+        { id: 7, label: "WP 7", name: "Waypoint 7 - Belokan Timur", desc: "Rombongan berbelok ke timur", location: "Dekat SD GMIM 38", coords: [1.450080, 124.843467], icon: "🌸", type: "station" },
+        { id: 8, label: "WP 8", name: "Waypoint 8 - Area TK Pembina", desc: "Melewati area TK Pembina", location: "Dekat TK Pembina", coords: [1.449756, 124.842875], icon: "🎶", type: "station" },
+        { id: 9, label: "WP 9", name: "Waypoint 9 - Belokan Barat", desc: "Pawai berbelok ke barat", location: "Area TK Pembina", coords: [1.449976, 124.842121], icon: "🙌", type: "station" },
+        { id: 10, label: "WP 10", name: "Waypoint 10 - Jalan Pulang", desc: "Rombongan mulai arah pulang", location: "Dekat Kantor Lurah", coords: [1.451179, 124.841240], icon: "🌟", type: "station" },
+        { id: 11, label: "WP 11", name: "Waypoint 11 - Jalur Barat", desc: "Pawai melewati jalur barat", location: "Jalan Pulang (Barat)", coords: [1.451711, 124.840959], icon: "💃", type: "station" },
+        { id: 12, label: "WP 12", name: "Waypoint 12 - Menuju Gereja", desc: "Rombongan mendekati gereja", location: "Jalan Pulang (Barat)", coords: [1.4525097903198463, 124.84028994133574], icon: "🎭", type: "station" },
+        { id: 13, label: "WP 13", name: "Waypoint 13 - Persimpangan", desc: "Persimpangan terakhir sebelum finish", location: "Persimpangan Selatan", coords: [1.4535059105677457, 124.8403100578934], icon: "🎉", type: "station" },
+        { id: 14, label: "FINISH", name: "FINISH - Depan Gereja Zaitun", desc: "Pawai selesai — Kristus telah bangkit! Haleluya!", location: "Depan Gereja Zaitun", coords: [1.4534388769185227, 124.84036370206937], icon: "⛪", type: "finish" }
+    ];
+
+    // Pre-built waypoints from OSRM road routing (following actual streets)
+    // waypoints[i] = array of [lat,lng] between station i and station i+1
+    const defaultWaypoints = [
+        // ═══════════════════════════════════════════════
+        // Seg 0: START (Parkiran) → Pos 1
+        // BARU: ke kiri, lewat Alfamart, lalu ke utara ke Pos 1
+        // Tidak lewat depan gereja lagi!
+        // ═══════════════════════════════════════════════
+        // [
+        //     [1.453700, 124.840400],   // ke utara dari parkiran
+        //     [1.454000, 124.840430],   // lanjut utara di jalan kiri gereja
+        //     [1.454300, 124.840470],   // mendekati area Alfamart
+        //     [1.454500, 124.840550],   // persimpangan Alfamart, mulai belok kanan
+        //     [1.454500, 124.840800],   // ke timur
+        //     [1.454400, 124.841000],   // lanjut ke timur
+        //     [1.454300, 124.841200],   // mendekati Pos 1
+        //     [1.454150, 124.841350],   // hampir sampai Pos 1
+        // ],
+        [[1.453797, 124.840547], [1.454084, 124.840766]],
+        // Seg 1: Pos 1 → Pos 2 (OSRM road-follow: lewati lorong pertama, belok kiri di lorong kedua)
+        [[1.454856, 124.841495], [1.455092, 124.841723]],
+        // Seg 2: Pos 2 → Pos 3 (OSRM road-follow: ikuti Jl. Pondok Bambu lalu belok kiri)
+        [[1.454852, 124.841966], [1.454678, 124.842138], [1.454459, 124.842354], [1.454288, 124.842511], [1.454067, 124.842299]],
+        // Seg 3: Pos 3 → Pos 4
+        [[1.453952, 124.842421], [1.453827, 124.842543], [1.453612, 124.842332]],
+        // Seg 4: Pos 4 → Pos 5
+        [[1.4530367213302666, 124.84290989538471], [1.452838, 124.842725], [1.452573, 124.842511]],
+        // Seg 5: Pos 5 → Pos 6
+        [[1.452573, 124.842511], [1.452357, 124.842311], [1.452295, 124.842269], [1.452048, 124.842046]],
+        // Seg 6: Pos 6 → Pos 7
+        [[1.451450, 124.842737], [1.451360, 124.842827], [1.451278, 124.842900], [1.450975, 124.843124], [1.450827, 124.843226], [1.450709, 124.843301], [1.450612, 124.843375], [1.450468, 124.843515], [1.450260, 124.843732], [1.450015, 124.843512]],
+        // Seg 7: Pos 7 → Pos 8
+        [[1.450126, 124.843401], [1.450232, 124.843282], [1.450049, 124.843125]],
+        // Seg 8: Pos 8 → Pos 9
+        [[1.449417, 124.842537], [1.449806, 124.842177], [1.449865, 124.842126]],
+        // Seg 9: Pos 9 → Pos 10
+        [[1.449957, 124.842063], [1.450057, 124.841993], [1.450435, 124.841728], [1.450785, 124.841501], [1.451150, 124.841229]],
+        // Seg 10: Pos 10 → Pos 11
+        [[1.451318, 124.841394], [1.451688, 124.840987]],
+        // Seg 11: Pos 11 → Pos 12
+        [[1.451848, 124.840791], [1.451879, 124.840756], [1.452101, 124.840567], [1.452200, 124.840506], [1.452314, 124.840446], [1.452389, 124.840392]],
+        // Seg 12: Pos 12 → Pos 13
+        [[1.4526974846127472, 124.84011023332394], [1.4529401464931635, 124.83979909710327]],
+        // Seg 13: Pos 13 → FINISH
+        []
+    ];
+
+    // Deep copy
+    let stations = JSON.parse(JSON.stringify(stationsData));
+    // waypoints[i] = array of [lat,lng] between station i and station i+1
+    let waypoints = defaultWaypoints.map(wps => wps.map(wp => [...wp]));
+
+    // ==========================================
+    //  UTILITAS
+    // ==========================================
+    function calcDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function getFullRouteCoords() {
+        let coords = [];
+        for (let i = 0; i < stations.length; i++) {
+            coords.push(stations[i].coords);
+            if (i < stations.length - 1 && waypoints[i]) {
+                waypoints[i].forEach(wp => coords.push(wp));
+            }
+        }
+        return coords;
+    }
+
+    function getTotalDistance() {
+        const rc = getFullRouteCoords();
+        let total = 0;
+        for (let i = 0; i < rc.length - 1; i++) {
+            total += calcDistance(rc[i][0], rc[i][1], rc[i+1][0], rc[i+1][1]);
+        }
+        return total;
+    }
+
+    function getTotalWaypoints() {
+        return waypoints.reduce((sum, w) => sum + w.length, 0);
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    // ==========================================
+    //  INISIALISASI PETA
+    // ==========================================
+    const map = L.map('map', { zoomControl: false, attributionControl: true }).setView(stations[0].coords, 17);
+
+    // Dark map with glowing effect + POI labels from tile
+    const darkTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '© CartoDB © OpenStreetMap', maxZoom: 20, crossOrigin: 'anonymous' });
+    const voyagerTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© CartoDB © OpenStreetMap', maxZoom: 20, crossOrigin: 'anonymous' });
+    const standardTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19, crossOrigin: 'anonymous' });
+    const satelliteTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri', maxZoom: 20, crossOrigin: 'anonymous' });
+    darkTile.addTo(map);
+    L.control.layers({ "🌙 Dark Glow": darkTile, "🗺️ Voyager": voyagerTile, "🌍 Standard": standardTile, "🛰️ Satellite": satelliteTile }, null, { position: 'bottomright' }).addTo(map);
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+    // ==========================================
+    //  ROUTE LAYERS & MARKERS
+    // ==========================================
+    let routeGlow, routeLine, routeDash;
+    let stationMarkers = [];
+    let waypointMarkers = [];  // flat array of all wp markers
+    let clickableSegments = []; // invisible thick polylines for click-to-add-waypoint
+    let arrowMarkers = [];     // directional arrow markers on route
+    let landmarkMarkers = [];  // nearby POI landmark markers
+    let selectedStationIdx = null;
+
+    function createStationIcon(station, index, isDragging) {
+        const isStart = station.type === 'start';
+        const isFinish = station.type === 'finish';
+        const isPaskah = !document.documentElement.classList.contains('theme-jumatagung');
+
+        // START dan FINISH tetap tampil besar dengan ikon
+        if (isStart || isFinish) {
+            let bgColor = isDragging ? '#4CAF50' : (isStart ? '#4CAF50' : (isPaskah ? '#FF6F00' : '#7B1FA2'));
+            let textColor = isPaskah ? '#333' : 'white';
+            let size = 36;
+            let fontSize = isStart ? 13 : 11;
+            let displayLabel = isStart ? '▶' : '🏁';
+            let extraStyle = isDragging ? 'box-shadow: 0 0 25px rgba(76,175,80,0.8);' : (isPaskah ? 'box-shadow: 0 0 15px rgba(255,215,0,0.6), 0 2px 8px rgba(0,0,0,0.4);' : 'box-shadow: 0 0 15px rgba(138,92,200,0.6), 0 2px 8px rgba(0,0,0,0.4);');
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background:${bgColor};color:${textColor};width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:${fontSize}px;border:3px solid white;${extraStyle}cursor:grab;transition:box-shadow 0.3s;">${displayLabel}</div>`,
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2],
+            });
+        }
+
+        // Waypoint biasa — titik kecil saja tanpa angka
+        let dotSize = isDragging ? 14 : 10;
+        let dotColor = isDragging ? '#4CAF50' : (isPaskah ? 'rgba(255,215,0,0.7)' : 'rgba(186,104,255,0.7)');
+        let dotBorder = isDragging ? '2px solid white' : '2px solid rgba(255,255,255,0.6)';
+        let dotShadow = isDragging ? 'box-shadow: 0 0 15px rgba(76,175,80,0.8);' : (isPaskah ? 'box-shadow: 0 0 8px rgba(255,215,0,0.4);' : 'box-shadow: 0 0 8px rgba(138,92,200,0.4);');
+        return L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="width:${dotSize}px;height:${dotSize}px;background:${dotColor};border-radius:50%;border:${dotBorder};${dotShadow}cursor:grab;transition:all 0.3s;"></div>`,
+            iconSize: [dotSize, dotSize],
+            iconAnchor: [dotSize/2, dotSize/2],
+        });
+    }
+
+    function createWaypointIcon(isDragging) {
+        const color = isDragging ? '#4CAF50' : 'rgba(186,104,200,0.6)';
+        const shadow = isDragging ? '0 0 6px rgba(76,175,80,0.8)' : 'none';
+        const sz = isDragging ? 8 : 5;
+        const bdr = isDragging ? '1.5px solid white' : '1px solid rgba(255,255,255,0.5)';
+        return L.divIcon({
+            className: 'wp-marker',
+            html: `<div style="width:${sz}px;height:${sz}px;background:${color};border-radius:50%;border:${bdr};box-shadow:${shadow};cursor:grab;"></div>`,
+            iconSize: [sz, sz],
+            iconAnchor: [sz/2, sz/2],
+        });
+    }
+
+    function rebuildRoute() {
+        const rc = getFullRouteCoords();
+        const isPaskah = !document.documentElement.classList.contains('theme-jumatagung');
+        const glowColor = isPaskah ? '#FFA000' : '#CE93D8';
+        const mainColor = isPaskah ? '#FFD700' : '#AB47BC';
+        const dashColor = isPaskah ? 'rgba(255,249,196,0.5)' : 'rgba(225,190,231,0.5)';
+        if (routeGlow) { map.removeLayer(routeGlow); routeGlow = null; }
+        if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+        if (routeDash) { map.removeLayer(routeDash); routeDash = null; }
+        routeGlow = L.polyline(rc, { color: glowColor, weight: 16, opacity: 0.25, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+        routeLine = L.polyline(rc, { color: mainColor, weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+        routeDash = L.polyline(rc, { color: dashColor, weight: 2, opacity: 0.5, dashArray: '6, 10', lineCap: 'round' }).addTo(map);
+        rebuildClickableSegments();
+        rebuildArrows();
+        updateStats();
+    }
+
+    function rebuildClickableSegments() {
+        clickableSegments.forEach(s => map.removeLayer(s));
+        clickableSegments = [];
+        for (let i = 0; i < stations.length - 1; i++) {
+            const segCoords = [stations[i].coords, ...(waypoints[i] || []), stations[i+1].coords];
+            // For each sub-segment within this segment
+            for (let j = 0; j < segCoords.length - 1; j++) {
+                const seg = L.polyline([segCoords[j], segCoords[j+1]], {
+                    color: 'transparent', weight: 20, opacity: 0
+                }).addTo(map);
+                const segIdx = i;
+                const wpInsertIdx = j; // insert waypoint at this position within waypoints[i]
+                seg.on('click', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                    addWaypointToSegment(segIdx, wpInsertIdx, [e.latlng.lat, e.latlng.lng]);
+                });
+                clickableSegments.push(seg);
+            }
+        }
+    }
+
+    function addWaypointToSegment(segIdx, insertIdx, coords) {
+        if (!waypoints[segIdx]) waypoints[segIdx] = [];
+        waypoints[segIdx].splice(insertIdx, 0, coords);
+        rebuildAll();
+        showToast(`✅ Waypoint ditambahkan di segmen ${segIdx}`);
+    }
+
+    function removeWaypoint(segIdx, wpIdx) {
+        waypoints[segIdx].splice(wpIdx, 1);
+        rebuildAll();
+        showToast(`🗑️ Waypoint dihapus`);
+    }
+
+    function rebuildWaypointMarkers() {
+        waypointMarkers.forEach(m => map.removeLayer(m));
+        waypointMarkers = [];
+        for (let i = 0; i < waypoints.length; i++) {
+            for (let j = 0; j < (waypoints[i]||[]).length; j++) {
+                const wp = waypoints[i][j];
+                const marker = L.marker(wp, {
+                    icon: createWaypointIcon(false),
+                    draggable: true,
+                    zIndexOffset: 500
+                }).addTo(map);
+
+                const si = i, wj = j;
+                marker.on('dragstart', function() {
+                    marker.setIcon(createWaypointIcon(true));
+                    map.dragging.disable();
+                });
+                marker.on('drag', function(e) {
+                    waypoints[si][wj] = [e.latlng.lat, e.latlng.lng];
+                    updateRouteOnly();
+                });
+                marker.on('dragend', function(e) {
+                    waypoints[si][wj] = [e.latlng.lat, e.latlng.lng];
+                    marker.setIcon(createWaypointIcon(false));
+                    map.dragging.enable();
+                    rebuildClickableSegments();
+                    rebuildStationList();
+                    if (selectedStationIdx !== null) updateWaypointPanel(selectedStationIdx);
+                });
+                marker.on('contextmenu', function(e) {
+                    L.DomEvent.preventDefault(e);
+                    removeWaypoint(si, wj);
+                });
+                marker.bindPopup(`<div class="popup-content"><div class="popup-title">Waypoint</div><div class="popup-desc">Segmen ${i} → ${i+1}, WP #${j+1}</div><div class="popup-loc">${wp[0].toFixed(6)}, ${wp[1].toFixed(4)}</div></div>`, { className: 'custom-popup' });
+                waypointMarkers.push(marker);
+            }
+        }
+    }
+
+    function updateRouteOnly() {
+        // Lightweight: only update route lines without rebuilding markers
+        const rc = getFullRouteCoords();
+        if (routeGlow) routeGlow.setLatLngs(rc);
+        if (routeLine) routeLine.setLatLngs(rc);
+        if (routeDash) routeDash.setLatLngs(rc);
+        updateStats();
+    }
+
+    function rebuildStationMarkers() {
+        stationMarkers.forEach(m => map.removeLayer(m));
+        stationMarkers = [];
+        stations.forEach((station, index) => {
+            const marker = L.marker(station.coords, {
+                icon: createStationIcon(station, index, false),
+                draggable: true,
+                zIndexOffset: 1000
+            }).addTo(map);
+
+            let isDragging = false;
+            marker.on('dragstart', function(e) {
+                isDragging = true;
+                marker.setIcon(createStationIcon(station, index, true));
+                selectStation(index);
+                // Disable map dragging during marker drag for smoother experience
+                map.dragging.disable();
+            });
+            marker.on('drag', function(e) {
+                station.coords = [e.latlng.lat, e.latlng.lng];
+                updateRouteOnly(); // lightweight, don't rebuild markers
+            });
+            marker.on('dragend', function(e) {
+                isDragging = false;
+                station.coords = [e.latlng.lat, e.latlng.lng];
+                marker.setIcon(createStationIcon(station, index, false));
+                map.dragging.enable();
+                // Only rebuild clickable segments + waypoint markers + station list, NOT station markers themselves
+                rebuildClickableSegments();
+                rebuildWaypointMarkers();
+                rebuildStationList();
+                updateStats();
+                if (selectedStationIdx !== null) updateWaypointPanel(selectedStationIdx);
+                showToast(`📍 ${station.label} dipindahkan`);
+            });
+            marker.on('click', function() { if (!isDragging) selectStation(index); });
+            marker.bindPopup(`<div class="popup-content"><div style="font-size:24px">${station.icon}</div><div class="popup-title">${station.name}</div><div class="popup-desc">${station.desc}</div><div class="popup-loc">📍 ${station.location}</div></div>`, { className: 'custom-popup', maxWidth: 250 });
+            stationMarkers.push(marker);
+        });
+    }
+
+    function selectStation(idx) {
+        selectedStationIdx = idx;
+        document.querySelectorAll('.station-item').forEach((el, i) => {
+            el.classList.toggle('active', i === idx);
+        });
+        updateWaypointPanel(idx);
+    }
+
+    function updateWaypointPanel(idx) {
+        const panel = document.getElementById('waypointPanel');
+        const title = document.getElementById('wpTitle');
+        const info = document.getElementById('wpInfo');
+        const list = document.getElementById('wpList');
+
+        if (idx === null || idx >= stations.length - 1) {
+            panel.classList.remove('visible');
+            return;
+        }
+
+        panel.classList.add('visible');
+        title.textContent = `Waypoints: ${stations[idx].label} → ${stations[idx+1].label}`;
+        const wps = waypoints[idx] || [];
+        info.textContent = wps.length === 0 ? 'Belum ada waypoint. Klik garis di peta untuk menambah.' : `${wps.length} waypoint(s)`;
+        list.innerHTML = '';
+        wps.forEach((wp, j) => {
+            const div = document.createElement('div');
+            div.className = 'wp-item';
+            div.innerHTML = `<span class="wp-del" onclick="removeWaypoint(${idx},${j})">✕</span> WP${j+1}: ${wp[0].toFixed(6)}, ${wp[1].toFixed(4)}`;
+            list.appendChild(div);
+        });
+    }
+
+    // ==========================================
+    //  STATION LIST UI
+    // ==========================================
+    function rebuildStationList() {
+        const el = document.getElementById('stationList');
+        el.innerHTML = '';
+        stations.forEach((station, index) => {
+            const item = document.createElement('div');
+            item.className = 'station-item' + (index === selectedStationIdx ? ' active' : '');
+            item.id = `station-item-${index}`;
+
+            const badgeText = station.type === 'start' ? '▶' : station.type === 'finish' ? '🏁' : station.id;
+            const wpCount = index < waypoints.length ? (waypoints[index]||[]).length : 0;
+            const wpText = wpCount > 0 ? `<div class="swaypoints">🔵 ${wpCount} waypoint(s)</div>` : '';
+
+            item.innerHTML = `
+                <div class="station-badge">${badgeText}</div>
+                <div class="station-info">
+                    <div class="sname">${station.name}</div>
+                    <div class="sloc">${station.coords[0].toFixed(6)}, ${station.coords[1].toFixed(4)}</div>
+                    ${wpText}
+                </div>
+                <div class="station-actions">
+                    <button title="Fokus" onclick="event.stopPropagation();map.flyTo([${station.coords}],18,{duration:1});">🎯</button>
+                    ${stations.length > 2 ? `<button class="btn-del" title="Hapus" onclick="event.stopPropagation();deleteStation(${index});">✕</button>` : ''}
+                </div>
+            `;
+            item.addEventListener('click', () => {
+                selectStation(index);
+                map.flyTo(station.coords, 18, { duration: 1 });
+                stationMarkers[index].openPopup();
+            });
+            el.appendChild(item);
+        });
+    }
+
+    function deleteStation(idx) {
+        if (stations.length <= 2) return;
+        if (!confirm(`Hapus ${stations[idx].name}?`)) return;
+        stations.splice(idx, 1);
+        // Merge waypoints: if removing station i, merge waypoints[i-1] and waypoints[i]
+        if (idx === 0) { waypoints.splice(0, 1); }
+        else if (idx >= stations.length) { waypoints.splice(waypoints.length - 1, 1); }
+        else { const merged = [...(waypoints[idx-1]||[]), ...(waypoints[idx]||[])]; waypoints.splice(idx-1, 2, merged); }
+        // Re-id
+        stations.forEach((s, i) => { s.id = i; s.label = i === 0 ? 'START' : i === stations.length-1 ? 'FINISH' : `WP ${i}`; });
+        selectedStationIdx = null;
+        rebuildAll();
+        showToast('🗑️ Waypoint dihapus');
+    }
+
+    let addingStation = false;
+    function startAddStation() {
+        addingStation = true;
+        showToast('📍 Klik pada peta untuk menempatkan waypoint baru...');
+        map.getContainer().style.cursor = 'crosshair';
+    }
+
+    map.on('click', function(e) {
+        if (!addingStation) return;
+        addingStation = false;
+        map.getContainer().style.cursor = '';
+
+        const newStation = {
+            id: stations.length,
+            label: `WP ${stations.length}`,
+            name: `Waypoint ${stations.length} - Titik Baru`,
+            desc: 'Waypoint baru ditambahkan',
+            location: 'Lokasi baru',
+            coords: [e.latlng.lat, e.latlng.lng],
+            icon: '🎉',
+            type: 'station'
+        };
+
+        // Insert before finish
+        const insertIdx = stations.length - 1;
+        stations.splice(insertIdx, 0, newStation);
+        waypoints.splice(insertIdx, 0, []);
+        // Re-id
+        stations.forEach((s, i) => {
+            s.id = i;
+            if (i === 0) { s.label = 'START'; s.type = 'start'; }
+            else if (i === stations.length-1) { s.label = 'FINISH'; s.type = 'finish'; }
+            else { s.label = `WP ${i}`; s.type = 'station'; }
+        });
+        rebuildAll();
+        showToast('✅ Waypoint baru ditambahkan!');
+    });
+
+    // ==========================================
+    //  UPDATE STATS
+    // ==========================================
+    function updateStats() {
+        document.getElementById('statStations').textContent = stations.length;
+        document.getElementById('statDistance').textContent = Math.round(getTotalDistance());
+        document.getElementById('statWaypoints').textContent = getTotalWaypoints();
+    }
+
+    // ==========================================
+    //  REBUILD ALL
+    // ==========================================
+    function rebuildAll() {
+        rebuildRoute();
+        rebuildStationMarkers();
+        rebuildWaypointMarkers();
+        rebuildStationList();
+        updateStats();
+        if (selectedStationIdx !== null) updateWaypointPanel(selectedStationIdx);
+    }
+
+    // ==========================================
+    //  DIRECTION ARROWS
+    // ==========================================
+    function rebuildArrows() {
+        arrowMarkers.forEach(m => map.removeLayer(m));
+        arrowMarkers = [];
+        const rc = getFullRouteCoords();
+        // Place an arrow every ~60m along the route
+        const arrowInterval = 60; // meters
+        let accumulated = 0;
+        for (let i = 0; i < rc.length - 1; i++) {
+            const segDist = calcDistance(rc[i][0], rc[i][1], rc[i+1][0], rc[i+1][1]);
+            accumulated += segDist;
+            if (accumulated >= arrowInterval) {
+                accumulated = 0;
+                // Calculate bearing
+                const lat1 = rc[i][0] * Math.PI / 180;
+                const lat2 = rc[i+1][0] * Math.PI / 180;
+                const dLon = (rc[i+1][1] - rc[i][1]) * Math.PI / 180;
+                const y = Math.sin(dLon) * Math.cos(lat2);
+                const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+                const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+                // Midpoint of segment
+                const midLat = (rc[i][0] + rc[i+1][0]) / 2;
+                const midLng = (rc[i][1] + rc[i+1][1]) / 2;
+                const arrowIcon = L.divIcon({
+                    className: 'arrow-icon',
+                    html: `<div style="transform:rotate(${bearing - 90}deg);font-size:18px;color:#FFEB3B;text-shadow:0 0 6px rgba(255,235,59,0.8), 0 0 2px rgba(0,0,0,0.9);pointer-events:none;line-height:1;font-weight:bold;">▶</div>`,
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8],
+                });
+                const m = L.marker([midLat, midLng], { icon: arrowIcon, interactive: false, zIndexOffset: 400 }).addTo(map);
+                arrowMarkers.push(m);
+            }
+        }
+    }
+
+    // ==========================================
+    //  LANDMARK POIs (nearby places for context)
+    // ==========================================
+    const landmarkData = [
+        // === USER VERIFIED - Gereja dekat rute ===
+        { name: 'Gereja GPDI Gloria', type: 'Gereja', icon: '⛪', coords: [1.4536268, 124.8424275], color: '#CE93D8' },
+        { name: 'GSPDI Filadelfia', type: 'Gereja', icon: '⛪', coords: [1.4511022, 124.8430139], color: '#CE93D8' },
+        { name: 'GKBI Karombasan', type: 'Gereja', icon: '⛪', coords: [1.4529804, 124.8399050], color: '#CE93D8' },
+        { name: 'GPDI Haleluya', type: 'Gereja', icon: '⛪', coords: [1.4514748, 124.8414312], color: '#CE93D8' },
+        // === USER VERIFIED - Sekolah dekat rute ===
+        { name: 'SD GMIM 31 Manado', type: 'Sekolah', icon: '🏫', coords: [1.454173, 124.841648], color: '#64B5F6' },
+        { name: 'SD GMIM 17 Manado', type: 'Sekolah', icon: '🏫', coords: [1.453237, 124.840806], color: '#64B5F6' },
+        { name: 'SMP/SMK Kristen Zaitun', type: 'Sekolah', icon: '🏫', coords: [1.454173, 124.841548], color: '#64B5F6' },
+        { name: 'TK Ruth', type: 'TK', icon: '🏫', coords: [1.4533607, 124.8426159], color: '#64B5F6' },
+        { name: 'TK Pembina', type: 'TK', icon: '🏫', coords: [1.4491247, 124.8429603], color: '#64B5F6' },
+        // === OSM VERIFIED - Toko & Fasilitas ===
+        { name: 'Indomaret', type: 'Minimarket', icon: '🏪', coords: [1.45450, 124.84070], color: '#FF8A65' },
+        { name: 'Alfamart', type: 'Minimarket', icon: '🏪', coords: [1.453550, 124.840280], color: '#FF8A65' },
+        { name: 'Apotek Nusantara Farma', type: 'Apotek', icon: '💊', coords: [1.4510, 124.8398], color: '#EF5350' },
+        // === OSM VERIFIED - Pemerintah & Umum ===
+        { name: 'Terminal Karombasan', type: 'Terminal', icon: '🚌', coords: [1.455716, 124.839905], color: '#FFA726' },
+        { name: 'SMPN 4 Manado', type: 'Sekolah', icon: '🏫', coords: [1.453202, 124.839701], color: '#64B5F6' },
+        { name: 'STIKIP', type: 'Kampus', icon: '🎓', coords: [1.45268, 124.83848], color: '#42A5F5' },
+        { name: 'Kodim 1309', type: 'Militer', icon: '🏢', coords: [1.448254, 124.838738], color: '#78909C' },
+    ];
+
+    function buildLandmarks() {
+        landmarkMarkers.forEach(m => map.removeLayer(m));
+        landmarkMarkers = [];
+        landmarkData.forEach(lm => {
+            const icon = L.divIcon({
+                className: 'landmark-label',
+                html: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;" onmouseover="this.querySelector('.lm-lbl').style.opacity=1;this.querySelector('.lm-lbl').style.transform='scale(1.05)';this.querySelector('.lm-ico').style.transform='scale(1.3)'" onmouseout="this.querySelector('.lm-lbl').style.opacity=0.9;this.querySelector('.lm-lbl').style.transform='scale(1)';this.querySelector('.lm-ico').style.transform='scale(1)'">
+                    <span class="lm-ico" style="font-size:16px;filter:drop-shadow(0 0 4px rgba(206,147,216,0.6));transition:transform 0.2s;">${lm.icon}</span>
+                    <span class="lm-lbl" style="font-size:9px;font-weight:600;color:${lm.color};background:rgba(0,0,0,0.65);padding:1px 5px;border-radius:3px;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;line-height:1.3;box-shadow:0 0 6px rgba(0,0,0,0.4);opacity:0.9;transition:all 0.2s;backdrop-filter:blur(2px);">${lm.name}</span>
+                </div>`,
+                iconSize: [0, 0],
+                iconAnchor: [0, -2],
+            });
+            const marker = L.marker(lm.coords, { icon, zIndexOffset: 100, interactive: true }).addTo(map);
+            marker.bindPopup(`<div class="landmark-content"><div class="lm-name">${lm.icon} ${lm.name}</div><div class="lm-type">${lm.type}</div></div>`, { className: 'landmark-popup', maxWidth: 200 });
+            landmarkMarkers.push(marker);
+        });
+    }
+
+    // ==========================================
+    //  PREVIEW ANIMATION
+    // ==========================================
+    let previewMarker = null;
+    let previewLine = null;
+    let previewGlow = null;
+    let previewAnim = null;
+    let previewPlaying = false;
+    let previewSpeed = 2;  // Default 2x (faster parade speed)
+    let previewStartTime = null;
+
+    function setSpeed(s, btn) {
+        previewSpeed = s;
+        document.querySelectorAll('.btn-speed').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    }
+
+    // Build a mapping: for each coord index in fullRoute, which station index is it?
+    function buildStationLookup() {
+        const lookup = {}; // coordIndex -> stationIndex
+        let ci = 0;
+        for (let i = 0; i < stations.length; i++) {
+            lookup[ci] = i;
+            ci++;
+            if (i < stations.length - 1 && waypoints[i]) {
+                ci += waypoints[i].length;
+            }
+        }
+        return lookup;
+    }
+
+    function showPreviewUI(show) {
+        document.getElementById('progressSection').classList.toggle('visible', show);
+        document.getElementById('infoBox').classList.toggle('visible', show);
+    }
+
+    function updatePreviewInfo(station, stationIdx) {
+        document.getElementById('csName').textContent = station.name;
+        document.getElementById('csDesc').textContent = station.desc;
+        document.getElementById('csCoords').textContent = `📍 ${station.coords[0].toFixed(6)}, ${station.coords[1].toFixed(4)}`;
+        document.getElementById('progressStation').textContent = `WP ${stationIdx} / ${stations.length - 1}`;
+
+        // Highlight in station list
+        document.querySelectorAll('.station-item').forEach((el, i) => {
+            el.classList.remove('active', 'dragging-active');
+            if (i < stationIdx) el.style.opacity = '0.5';
+            else el.style.opacity = '1';
+            if (i === stationIdx) el.classList.add('active');
+        });
+        const activeEl = document.getElementById(`station-item-${stationIdx}`);
+        if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function updatePreviewProgress(seg, totalSegs) {
+        const pct = (seg / totalSegs) * 100;
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressPercent').textContent = Math.round(pct) + '%';
+    }
+
+    function previewRoute() {
+        // If already playing, ignore (use stop first)
+        if (previewPlaying) { stopPreview(); }
+        if (previewMarker) { map.removeLayer(previewMarker); }
+        if (previewLine) { map.removeLayer(previewLine); }
+        if (previewGlow) { map.removeLayer(previewGlow); }
+
+        const rc = getFullRouteCoords();
+        if (rc.length < 2) return;
+        const stationLookup = buildStationLookup();
+
+        const paradeIcon = L.divIcon({
+            className: 'parade-icon',
+            html: `<div style="font-size:40px;filter:drop-shadow(0 0 15px #FFD700) drop-shadow(0 0 30px #FF6F00);animation:paradeBounce 0.8s ease-in-out infinite alternate;">🕊️</div>
+            <style>@keyframes paradeBounce{from{transform:scale(1) translateY(0);filter:drop-shadow(0 0 15px #FFD700);}to{transform:scale(1.2) translateY(-5px);filter:drop-shadow(0 0 25px #FFD700) drop-shadow(0 0 40px #FFA000);}}</style>`,
+            iconSize: [40, 48], iconAnchor: [20, 44],
+        });
+        previewMarker = L.marker(rc[0], { icon: paradeIcon, zIndexOffset: 2000 }).addTo(map);
+        previewLine = L.polyline([], { color: '#FFD700', weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+        previewGlow = L.polyline([], { color: '#FFA000', weight: 12, opacity: 0.25, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+
+        previewPlaying = true;
+        previewStartTime = Date.now();
+        showPreviewUI(true);
+        document.getElementById('btnPlay').innerHTML = '▶ Berjalan...';
+
+        // Start audio
+        playSFX('start');
+        setTimeout(() => startBGM(), 800);
+
+        let seg = 0, prog = 0;
+        const animCoords = [rc[0]];
+        let lastStationShown = -1;
+
+        // Show first station
+        if (stationLookup[0] !== undefined) {
+            updatePreviewInfo(stations[stationLookup[0]], stationLookup[0]);
+            stationMarkers[stationLookup[0]]?.openPopup();
+            lastStationShown = 0;
+        }
+
+        map.flyTo(rc[0], 18, { duration: 1 });
+
+        function step() {
+            if (!previewPlaying) return;
+            if (seg >= rc.length - 1) {
+                // Finished
+                previewPlaying = false;
+                document.getElementById('csName').textContent = '🎉 PAWAI SELESAI! KRISTUS BANGKIT!';
+                document.getElementById('csDesc').textContent = 'Pawai Selebrasi Paskah telah selesai. Haleluya, Kristus telah bangkit! 🌅';
+                document.getElementById('progressFill').style.width = '100%';
+                document.getElementById('progressPercent').textContent = '100%';
+                document.getElementById('btnPlay').innerHTML = '🔄 Ulangi';
+                map.flyTo(rc[rc.length-1], 17, { duration: 2 });
+                const lastStation = stationLookup[rc.length-1];
+                if (lastStation !== undefined) stationMarkers[lastStation]?.openPopup();
+                playSFX('finish');
+                stopBGM();
+                return;
+            }
+
+            // Distance-aware speed (FASTER for parade)
+            const segDist = calcDistance(rc[seg][0], rc[seg][1], rc[seg+1][0], rc[seg+1][1]);
+            const baseSpeed = 0.008 * previewSpeed;  // 2.67x faster than before
+            const normalizedSpeed = baseSpeed * (100 / Math.max(segDist, 50));
+            prog += Math.min(normalizedSpeed, 0.12);  // Raised cap from 0.05 to 0.12
+
+            if (prog >= 1) {
+                prog = 0;
+                seg++;
+                animCoords.push(rc[seg]);
+
+                // Update info at waypoint (no pause — continuous parade march!)
+                if (stationLookup[seg] !== undefined) {
+                    const si = stationLookup[seg];
+                    updatePreviewInfo(stations[si], si);
+                    lastStationShown = seg;
+                    playSFX('waypoint');
+                }
+            }
+
+            if (seg < rc.length - 1) {
+                const lat = rc[seg][0] + (rc[seg+1][0] - rc[seg][0]) * prog;
+                const lng = rc[seg][1] + (rc[seg+1][1] - rc[seg][1]) * prog;
+                const currentPos = [lat, lng];
+                previewMarker.setLatLng(currentPos);
+                const tempCoords = [...animCoords, currentPos];
+                previewLine.setLatLngs(tempCoords);
+                previewGlow.setLatLngs(tempCoords);
+                map.panTo(currentPos, { animate: true, duration: 0.3, easeLinearity: 0.5 });
+            }
+
+            updatePreviewProgress(seg + prog, rc.length - 1);
+            previewAnim = requestAnimationFrame(step);
+        }
+        setTimeout(step, 1200);
+        showToast('▶ Preview dimulai...');
+    }
+
+    function stopPreview() {
+        previewPlaying = false;
+        if (previewAnim) cancelAnimationFrame(previewAnim);
+        if (previewMarker) { map.removeLayer(previewMarker); previewMarker = null; }
+        if (previewLine) { map.removeLayer(previewLine); previewLine = null; }
+        if (previewGlow) { map.removeLayer(previewGlow); previewGlow = null; }
+        showPreviewUI(false);
+        document.getElementById('btnPlay').innerHTML = '▶ Preview';
+        // Reset station list opacity
+        document.querySelectorAll('.station-item').forEach(el => { el.style.opacity = '1'; });
+        stationMarkers.forEach(m => m.closePopup());
+        stopBGM();
+        showToast('⏸ Preview dihentikan');
+    }
+
+    // ==========================================
+    //  EXPORT
+    // ==========================================
+    function exportData() {
+        const output = {
+            stations: stations.map((s, i) => ({
+                id: s.id, label: s.label, name: s.name, desc: s.desc,
+                location: s.location, coords: s.coords, icon: s.icon, type: s.type,
+                waypointsToNext: i < waypoints.length ? (waypoints[i]||[]) : []
+            })),
+            fullRoute: getFullRouteCoords(),
+            totalDistance: Math.round(getTotalDistance()),
+            totalWaypoints: getTotalWaypoints()
+        };
+        document.getElementById('exportText').value = JSON.stringify(output, null, 2);
+        document.getElementById('exportModal').classList.add('show');
+    }
+
+    function copyExport() {
+        const ta = document.getElementById('exportText');
+        ta.select();
+        document.execCommand('copy');
+        showToast('📋 Data berhasil di-copy!');
+    }
+
+    function closeExportModal() { document.getElementById('exportModal').classList.remove('show'); }
+
+    // ==========================================
+    //  RESET
+    // ==========================================
+    function resetRoute() {
+        if (!confirm('Reset semua perubahan ke posisi awal?')) return;
+        stations = JSON.parse(JSON.stringify(stationsData));
+        waypoints = defaultWaypoints.map(wps => wps.map(wp => [...wp]));
+        selectedStationIdx = null;
+        rebuildAll();
+        const bounds = L.latLngBounds(stations.map(s => s.coords));
+        map.fitBounds(bounds.pad(0.15));
+        showToast('↺ Rute di-reset ke posisi awal');
+    }
+
+    // ==========================================
+    //  CAPTURE TO IMAGE (Manual Canvas Compositing)
+    // ==========================================
+    let capturedDataUrl = null;
+
+    function openCaptureModal() {
+        document.getElementById('captureModal').classList.add('show');
+        document.getElementById('capturePreviewImg').style.display = 'none';
+        document.getElementById('btnDownloadCapture').style.display = 'none';
+        capturedDataUrl = null;
+        // Hide sidebar to show map fully
+        document.getElementById('panelLeft').style.display = 'none';
+        const toggle = document.querySelector('.panel-toggle');
+        if (toggle) toggle.style.display = 'none';
+        // Apply current rotation
+        const rot = parseInt(document.getElementById('captureRotation').value) || 0;
+        applyMapRotation(rot);
+    }
+    function closeCaptureModal() {
+        document.getElementById('captureModal').classList.remove('show');
+        // Reset rotation
+        applyMapRotation(0);
+        // Restore sidebar
+        document.getElementById('panelLeft').style.display = '';
+        const toggle = document.querySelector('.panel-toggle');
+        if (toggle) toggle.style.display = '';
+    }
+
+    function applyMapRotation(deg) {
+        const mapEl = document.getElementById('map');
+        if (deg === 0) {
+            mapEl.style.transform = '';
+            mapEl.classList.remove('capture-rotating');
+        } else {
+            mapEl.classList.add('capture-rotating');
+            mapEl.style.transform = `rotate(${deg}deg)`;
+        }
+    }
+
+    function resetCaptureRotation() {
+        document.getElementById('captureRotation').value = 0;
+        document.getElementById('captureRotVal').textContent = '0°';
+        applyMapRotation(0);
+    }
+
+    function captureZoomTo(level) {
+        if (level === 'fit') {
+            const bounds = L.latLngBounds(stations.map(s => s.coords));
+            map.fitBounds(bounds.pad(0.12));
+        } else {
+            const center = L.latLngBounds(stations.map(s => s.coords)).getCenter();
+            map.setView(center, level);
+        }
+    }
+
+    // Rotation slider live preview
+    document.getElementById('captureRotation')?.addEventListener('input', function() {
+        const val = parseInt(this.value);
+        document.getElementById('captureRotVal').textContent = val + '°';
+        applyMapRotation(val);
+    });
+
+    async function doCapture() {
+        const title = document.getElementById('captureTitle').value || 'Via Dolorosa';
+        const watermark = document.getElementById('captureWatermark').value || '';
+        const fmt = document.getElementById('captureFormat').value;
+        const scale = parseInt(document.getElementById('captureQuality').value);
+        const hideSidebar = document.getElementById('captureHideSidebar').checked;
+        const showLandmarks = document.getElementById('captureShowLandmarks').checked;
+        const showArrows = document.getElementById('captureShowArrows').checked;
+        const showGlow = document.getElementById('captureShowGlow').checked;
+        const showDash = document.getElementById('captureShowDash').checked;
+        const showTitle = document.getElementById('captureShowTitle').checked;
+        const showWatermark = document.getElementById('captureShowWatermark').checked;
+        const rotation = parseInt(document.getElementById('captureRotation').value) || 0;
+
+        showToast('📸 Memproses capture...');
+        closeCaptureModal();
+
+        // Remove CSS rotation for canvas capture (canvas applies its own rotation)
+        applyMapRotation(0);
+        await new Promise(r => setTimeout(r, 300));
+
+        const panel = document.getElementById('panelLeft');
+        const toggle = document.querySelector('.panel-toggle');
+        if (hideSidebar) {
+            panel.style.display = 'none';
+            if (toggle) toggle.style.display = 'none';
+        }
+        await new Promise(r => setTimeout(r, 400));
+
+        try {
+            const mapContainer = map.getContainer();
+            const mapSize = map.getSize();
+            const canvas = document.createElement('canvas');
+            canvas.width = mapSize.x * scale;
+            canvas.height = mapSize.y * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
+
+            // 1. Draw tile images
+            const containerRect = mapContainer.getBoundingClientRect();
+            const tilePane = mapContainer.querySelector('.leaflet-tile-pane');
+            if (tilePane) {
+                const tiles = tilePane.querySelectorAll('img.leaflet-tile');
+                for (const tile of tiles) {
+                    if (!tile.complete || !tile.naturalWidth) continue;
+                    try {
+                        const r = tile.getBoundingClientRect();
+                        ctx.drawImage(tile, r.left - containerRect.left, r.top - containerRect.top, r.width, r.height);
+                    } catch(e) { /* skip tainted tiles */ }
+                }
+            }
+
+            // Apply rotation if needed
+            if (rotation !== 0) {
+                ctx.translate(mapSize.x / 2, mapSize.y / 2);
+                ctx.rotate(rotation * Math.PI / 180);
+                ctx.translate(-mapSize.x / 2, -mapSize.y / 2);
+            }
+
+            // 2. Draw route polylines on canvas
+            const rc = getFullRouteCoords();
+            if (rc.length > 1) {
+                // Glow
+                if (showGlow) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'rgba(206,147,216,0.25)';
+                    ctx.lineWidth = 16;
+                    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                    for (let i = 0; i < rc.length; i++) {
+                        const pt = map.latLngToContainerPoint(L.latLng(rc[i][0], rc[i][1]));
+                        i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+                    }
+                    ctx.stroke();
+                }
+                // Main line
+                ctx.beginPath();
+                ctx.strokeStyle = '#AB47BC';
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                for (let i = 0; i < rc.length; i++) {
+                    const pt = map.latLngToContainerPoint(L.latLng(rc[i][0], rc[i][1]));
+                    i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+                }
+                ctx.stroke();
+                // Dashed center
+                if (showDash) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'rgba(225,190,231,0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([6, 10]);
+                    for (let i = 0; i < rc.length; i++) {
+                        const pt = map.latLngToContainerPoint(L.latLng(rc[i][0], rc[i][1]));
+                        i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            // 3. Draw arrows (conditional)
+            if (showArrows) {
+                let accDist = 0;
+                for (let i = 0; i < rc.length - 1; i++) {
+                    accDist += calcDistance(rc[i][0], rc[i][1], rc[i+1][0], rc[i+1][1]);
+                    if (accDist >= 40) {
+                        accDist = 0;
+                        const lat1r = rc[i][0] * Math.PI / 180, lat2r = rc[i+1][0] * Math.PI / 180;
+                        const dLonR = (rc[i+1][1] - rc[i][1]) * Math.PI / 180;
+                        const y = Math.sin(dLonR) * Math.cos(lat2r);
+                        const x = Math.cos(lat1r) * Math.sin(lat2r) - Math.sin(lat1r) * Math.cos(lat2r) * Math.cos(dLonR);
+                        const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+                        const midLat = (rc[i][0] + rc[i+1][0]) / 2;
+                        const midLng = (rc[i][1] + rc[i+1][1]) / 2;
+                        const pt = map.latLngToContainerPoint(L.latLng(midLat, midLng));
+                        ctx.save();
+                        ctx.translate(pt.x, pt.y);
+                        ctx.rotate((bearing - 90) * Math.PI / 180);
+                        ctx.font = 'bold 16px sans-serif';
+                        ctx.fillStyle = '#FFEB3B';
+                        ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 3;
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText('▶', 0, 0);
+                        ctx.restore();
+                    }
+                }
+            }
+
+            // 4. Draw station markers
+            for (let i = 0; i < stations.length; i++) {
+                const s = stations[i];
+                const pt = map.latLngToContainerPoint(L.latLng(s.coords[0], s.coords[1]));
+                const isStart = s.type === 'start', isFinish = s.type === 'finish';
+                const sz = (isStart || isFinish) ? 18 : 15;
+                // Circle
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, sz, 0, Math.PI * 2);
+                ctx.fillStyle = isStart ? '#4CAF50' : isFinish ? '#7B1FA2' : '#9C27B0';
+                ctx.fill();
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
+                // Shadow glow
+                ctx.shadowColor = 'rgba(138,92,200,0.6)'; ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                // Label
+                ctx.fillStyle = 'white';
+                ctx.font = `bold ${isStart||isFinish ? 11 : 12}px Inter, sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                const label = isStart ? '▶' : isFinish ? '🏁' : s.id;
+                ctx.fillText(label, pt.x, pt.y);
+            }
+
+            // 5. Draw landmark labels (conditional)
+            if (showLandmarks) {
+                for (const lm of landmarkData) {
+                    const pt = map.latLngToContainerPoint(L.latLng(lm.coords[0], lm.coords[1]));
+                    if (pt.x < -20 || pt.y < -20 || pt.x > mapSize.x + 20 || pt.y > mapSize.y + 20) continue;
+                    ctx.font = '13px sans-serif';
+                    ctx.fillText(lm.icon, pt.x, pt.y);
+                    ctx.font = '9px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    const tw = ctx.measureText(lm.name).width;
+                    ctx.fillRect(pt.x + 8, pt.y - 7, tw + 6, 14);
+                    ctx.fillStyle = lm.color;
+                    ctx.fillText(lm.name, pt.x + 11, pt.y + 3);
+                }
+            }
+
+            // Reset rotation for overlays (title/watermark should not rotate)
+            if (rotation !== 0) {
+                ctx.setTransform(scale, 0, 0, scale, 0, 0);
+            }
+
+            // 6. Title banner (conditional)
+            if (showTitle && title) {
+                const bannerH = 44;
+                ctx.fillStyle = 'rgba(12,8,22,0.88)';
+                ctx.fillRect(0, 0, mapSize.x, bannerH);
+                ctx.fillStyle = '#D4A5FF';
+                ctx.font = 'bold 20px "Cinzel", serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(title, mapSize.x / 2, bannerH / 2);
+            }
+
+            // 7. Watermark (conditional)
+            if (showWatermark && watermark) {
+                const wmH = 24;
+                ctx.fillStyle = 'rgba(12,8,22,0.7)';
+                ctx.fillRect(0, mapSize.y - wmH, mapSize.x, wmH);
+                ctx.fillStyle = 'rgba(186,104,200,0.6)';
+                ctx.font = '11px Inter, sans-serif';
+                ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+                ctx.fillText(watermark, mapSize.x - 12, mapSize.y - wmH / 2);
+            }
+
+            capturedDataUrl = canvas.toDataURL(`image/${fmt}`, 0.95);
+            document.getElementById('capturePreviewImg').src = capturedDataUrl;
+            document.getElementById('capturePreviewImg').style.display = 'block';
+            document.getElementById('btnDownloadCapture').style.display = 'inline-flex';
+            document.getElementById('captureModal').classList.add('show');
+            showToast('✅ Capture berhasil!');
+        } catch(e) {
+            console.error('Capture error:', e);
+            showToast('❌ Gagal capture: ' + e.message);
+        }
+
+        if (hideSidebar) {
+            panel.style.display = '';
+            if (toggle) toggle.style.display = '';
+        }
+    }
+
+    function downloadCapture() {
+        if (!capturedDataUrl) return;
+        const fmt = document.getElementById('captureFormat').value;
+        const link = document.createElement('a');
+        link.download = `via-dolorosa-route.${fmt}`;
+        link.href = capturedDataUrl;
+        link.click();
+        showToast('💾 Gambar berhasil diunduh!');
+    }
+
+    // ==========================================
+    //  VIDEO RECORDING (Preview)
+    // ==========================================
+    let isRecording = false;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordCanvas = null;
+    let recordCtx = null;
+    let recordInterval = null;
+
+    function toggleRecording() {
+        if (isRecording) {
+            stopRecording();
+        } else {
+            startRecording();
+        }
+    }
+
+    function startRecording() {
+        const mapContainer = map.getContainer();
+        const mapSize = map.getSize();
+        recordCanvas = document.createElement('canvas');
+        recordCanvas.width = mapSize.x;
+        recordCanvas.height = mapSize.y;
+        recordCtx = recordCanvas.getContext('2d');
+
+        const stream = recordCanvas.captureStream(15);
+        try {
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+        } catch(e) {
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        }
+        recordedChunks = [];
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.download = 'via-dolorosa-preview.webm';
+            a.href = url;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('🎬 Video berhasil diunduh!');
+        };
+        mediaRecorder.start(100);
+
+        // Paint frames to canvas
+        recordInterval = setInterval(() => paintMapToCanvas(recordCtx, mapSize), 80);
+
+        isRecording = true;
+        document.getElementById('btnRecord').innerHTML = '⏹ Stop Rec';
+        document.getElementById('btnRecord').style.background = 'linear-gradient(135deg,#F44336,#D32F2F)';
+        showToast('⏺ Rekaman dimulai! Mulai Preview untuk merekam.');
+    }
+
+    function stopRecording() {
+        if (recordInterval) { clearInterval(recordInterval); recordInterval = null; }
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+        isRecording = false;
+        document.getElementById('btnRecord').innerHTML = '⏺ Rec';
+        document.getElementById('btnRecord').style.background = 'linear-gradient(135deg,#C62828,#B71C1C)';
+    }
+
+    function paintMapToCanvas(ctx, mapSize) {
+        const mapContainer = map.getContainer();
+        const containerRect = mapContainer.getBoundingClientRect();
+
+        // Clear
+        ctx.fillStyle = '#0c0816';
+        ctx.fillRect(0, 0, mapSize.x, mapSize.y);
+
+        // Tiles
+        const tilePane = mapContainer.querySelector('.leaflet-tile-pane');
+        if (tilePane) {
+            const tiles = tilePane.querySelectorAll('img.leaflet-tile');
+            for (const tile of tiles) {
+                if (!tile.complete || !tile.naturalWidth) continue;
+                try {
+                    const r = tile.getBoundingClientRect();
+                    ctx.drawImage(tile, r.left - containerRect.left, r.top - containerRect.top, r.width, r.height);
+                } catch(e) {}
+            }
+        }
+
+        // Route polylines
+        const rc = getFullRouteCoords();
+        if (rc.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(206,147,216,0.25)'; ctx.lineWidth = 14;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            for (let i = 0; i < rc.length; i++) {
+                const pt = map.latLngToContainerPoint(L.latLng(rc[i][0], rc[i][1]));
+                i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.strokeStyle = '#AB47BC'; ctx.lineWidth = 4;
+            for (let i = 0; i < rc.length; i++) {
+                const pt = map.latLngToContainerPoint(L.latLng(rc[i][0], rc[i][1]));
+                i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.stroke();
+        }
+
+        // Preview trail (if playing)
+        if (previewLine) {
+            const latlngs = previewLine.getLatLngs();
+            if (latlngs.length > 1) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255,215,0,0.25)'; ctx.lineWidth = 12;
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                for (let i = 0; i < latlngs.length; i++) {
+                    const pt = map.latLngToContainerPoint(latlngs[i]);
+                    i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+                }
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 4;
+                for (let i = 0; i < latlngs.length; i++) {
+                    const pt = map.latLngToContainerPoint(latlngs[i]);
+                    i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+                }
+                ctx.stroke();
+            }
+        }
+
+        // Station markers
+        for (let i = 0; i < stations.length; i++) {
+            const s = stations[i];
+            const pt = map.latLngToContainerPoint(L.latLng(s.coords[0], s.coords[1]));
+            if (pt.x < -30 || pt.y < -30 || pt.x > mapSize.x + 30 || pt.y > mapSize.y + 30) continue;
+            const isS = s.type === 'start', isF = s.type === 'finish';
+            const sz = (isS || isF) ? 16 : 13;
+            ctx.beginPath(); ctx.arc(pt.x, pt.y, sz, 0, Math.PI * 2);
+            ctx.fillStyle = isS ? '#4CAF50' : isF ? '#7B1FA2' : '#9C27B0';
+            ctx.fill(); ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${(isS||isF) ? 10 : 11}px Inter, sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(isS ? '▶' : isF ? 'END' : s.id, pt.x, pt.y);
+        }
+
+        // Preview torch marker
+        if (previewMarker) {
+            const pt = map.latLngToContainerPoint(previewMarker.getLatLng());
+            ctx.font = '32px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('🔥', pt.x, pt.y - 10);
+        }
+    }
+
+    function togglePanel() { document.getElementById('panelLeft').classList.toggle('hidden'); }
+
+    // ==========================================
+    //  AUDIO SYSTEM (BGM + SFX)
+    // ==========================================
+    let bgmEnabled = true;
+    let sfxEnabled = true;
+    let ytPlayer = null;
+    let ytReady = false;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // --- YouTube IFrame API untuk Backsound ---
+    // Muat YouTube API
+    const ytScript = document.createElement('script');
+    ytScript.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(ytScript);
+
+    // Container player YouTube (kecil, di pojok kanan bawah)
+    const ytDiv = document.createElement('div');
+    ytDiv.id = 'ytPlayer';
+    ytDiv.style.cssText = 'position:fixed;bottom:4px;right:4px;width:200px;height:120px;z-index:1;opacity:0.15;border-radius:8px;overflow:hidden;transition:opacity 0.3s;pointer-events:none;';
+    document.body.appendChild(ytDiv);
+
+    // Daftar video ID untuk "Allah Bangkit" - GMB (fallback)
+    const bgmVideoIds = ['nWYjFbG2r0g', 'LZ_GhJo2e9Q', 'LmNX4KNCRWU', 'sGy8xSCF3I0'];
+    let currentBgmIdx = 0;
+
+    window.onYouTubeIframeAPIReady = function() {
+        createYTPlayer(bgmVideoIds[0]);
+    };
+
+    function createYTPlayer(videoId) {
+        // Hapus player lama jika ada
+        if (ytPlayer && ytPlayer.destroy) {
+            try { ytPlayer.destroy(); } catch(e) {}
+        }
+        document.getElementById('ytPlayer').innerHTML = '';
+
+        ytPlayer = new YT.Player('ytPlayer', {
+            height: '120', width: '200',
+            videoId: videoId,
+            playerVars: {
+                autoplay: 0, loop: 1, playlist: videoId,
+                controls: 0, showinfo: 0, modestbranding: 1,
+                rel: 0, fs: 0, iv_load_policy: 3,
+                origin: window.location.origin || 'file://'
+            },
+            events: {
+                onReady: function(e) {
+                    ytReady = true;
+                    e.target.setVolume(70);
+                    console.log('🎵 BGM Siap: Allah Bangkit - GMB (ID: ' + videoId + ')');
+                },
+                onError: function(e) {
+                    console.warn('⚠️ Gagal memuat BGM (ID: ' + videoId + '), kode error: ' + e.data);
+                    ytReady = false;
+                    // Coba video ID berikutnya
+                    currentBgmIdx++;
+                    if (currentBgmIdx < bgmVideoIds.length) {
+                        console.log('🔄 Mencoba video alternatif...');
+                        setTimeout(() => createYTPlayer(bgmVideoIds[currentBgmIdx]), 1000);
+                    } else {
+                        console.warn('❌ Semua video ID gagal. Backsound tidak tersedia.');
+                        showToast('⚠️ Backsound tidak tersedia (perlu koneksi internet)');
+                    }
+                },
+                onStateChange: function(e) {
+                    // Log status perubahan untuk debugging
+                    const states = {'-1':'belum mulai','0':'selesai','1':'memutar','2':'dijeda','3':'buffering','5':'siap'};
+                    console.log('🎵 BGM Status: ' + (states[e.data] || e.data));
+                }
+            }
+        });
+    }
+
+    function startBGM() {
+        if (!bgmEnabled || !ytPlayer || !ytReady) return;
+        try {
+            const ytContainer = document.getElementById('ytPlayer');
+            if (ytContainer) ytContainer.style.opacity = '0.25';
+            ytPlayer.setVolume(70);
+            ytPlayer.seekTo(0);
+            ytPlayer.playVideo();
+            console.log('🎵 Memutar backsound...');
+        } catch(e) {
+            console.warn('⚠️ Gagal memutar BGM:', e);
+            showToast('⚠️ Backsound gagal diputar');
+        }
+    }
+
+    function stopBGM() {
+        if (!ytPlayer || !ytReady) return;
+        try {
+            ytPlayer.pauseVideo();
+            const ytContainer = document.getElementById('ytPlayer');
+            if (ytContainer) ytContainer.style.opacity = '0.15';
+        } catch(e) {}
+    }
+
+    function toggleBGM() {
+        bgmEnabled = !bgmEnabled;
+        const btn = document.getElementById('btnBGM');
+        if (bgmEnabled) {
+            btn.textContent = '🎵 Backsound ON';
+            btn.classList.add('active');
+            if (previewPlaying) startBGM();
+        } else {
+            btn.textContent = '🎵 Backsound OFF';
+            btn.classList.remove('active');
+            stopBGM();
+        }
+        showToast(bgmEnabled ? '🎵 Backsound diaktifkan' : '🔇 Backsound dimatikan');
+    }
+
+    function toggleSFX() {
+        sfxEnabled = !sfxEnabled;
+        const btn = document.getElementById('btnSFX');
+        if (sfxEnabled) {
+            btn.textContent = '🔊 SFX ON';
+            btn.classList.add('active');
+        } else {
+            btn.textContent = '🔇 SFX OFF';
+            btn.classList.remove('active');
+        }
+        showToast(sfxEnabled ? '🔊 Efek suara diaktifkan' : '🔇 Efek suara dimatikan');
+    }
+
+    // --- Efek Suara menggunakan Web Audio API ---
+    function playSFX(type) {
+        if (!sfxEnabled) return;
+        // Resume AudioContext if suspended (browser policy)
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        switch(type) {
+            case 'start':
+                // Fanfare - ascending notes
+                playNote(523.25, 0, 0.15, 0.4);    // C5
+                playNote(659.25, 0.12, 0.15, 0.4);  // E5
+                playNote(783.99, 0.24, 0.15, 0.4);  // G5
+                playNote(1046.5, 0.36, 0.3, 0.5);   // C6
+                break;
+            case 'waypoint':
+                // Quick bright chime
+                playChime(880 + Math.random() * 200, 0.12, 0.25);
+                break;
+            case 'finish':
+                // Celebration - happy chord + ascending
+                playNote(523.25, 0, 0.2, 0.3);
+                playNote(659.25, 0, 0.2, 0.3);
+                playNote(783.99, 0, 0.2, 0.3);
+                playNote(1046.5, 0.2, 0.3, 0.4);
+                playNote(1174.66, 0.35, 0.3, 0.4);
+                playNote(1318.51, 0.5, 0.5, 0.5);
+                break;
+        }
+    }
+
+    function playNote(freq, delay, duration, volume) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const now = audioCtx.currentTime + delay;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(volume * 0.3, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.start(now);
+        osc.stop(now + duration + 0.05);
+    }
+
+    function playChime(freq, duration, volume) {
+        const osc = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc2.type = 'triangle';
+        osc.frequency.value = freq;
+        osc2.frequency.value = freq * 2;
+        const now = audioCtx.currentTime;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(volume * 0.2, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.start(now);
+        osc2.start(now);
+        osc.stop(now + duration + 0.05);
+        osc2.stop(now + duration + 0.05);
+    }
+
+    // ==========================================
+    //  INIT
+    // ==========================================
+    buildLandmarks();
+    rebuildAll();
+    const bounds = L.latLngBounds(stations.map(s => s.coords));
+    map.fitBounds(bounds.pad(0.15));
+
+    // ==========================================
+    //  THEME SWITCHING
+    // ==========================================
+    let currentTheme = 'paskah';
+
+    function setTheme(theme) {
+        currentTheme = theme;
+        const root = document.documentElement;
+        if (theme === 'jumatagung') {
+            root.classList.add('theme-jumatagung');
+            document.getElementById('panelTitle').innerHTML = '✝️ VIA DOLOROSA';
+            document.getElementById('panelSubtitle').textContent = 'Editor Rute Interaktif';
+            document.getElementById('btnThemePaskah').classList.remove('active');
+            document.getElementById('btnThemeJA').classList.add('active');
+            stopConfetti();
+        } else {
+            root.classList.remove('theme-jumatagung');
+            document.getElementById('panelTitle').innerHTML = '🌅 PAWAI PASKAH';
+            document.getElementById('panelSubtitle').textContent = 'Selebrasi Remaja GMIM Zaitun Karoweru';
+            document.getElementById('btnThemePaskah').classList.add('active');
+            document.getElementById('btnThemeJA').classList.remove('active');
+            startConfetti();
+        }
+        // Rebuild visuals with new theme colors
+        rebuildAll();
+    }
+
+    // ==========================================
+    //  CONFETTI / CELEBRATION EFFECTS
+    // ==========================================
+    const confettiCanvas = document.getElementById('confettiCanvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let confettiParticles = [];
+    let confettiAnimId = null;
+    let confettiRunning = false;
+
+    function resizeConfetti() {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeConfetti);
+    resizeConfetti();
+
+    const confettiColors = ['#FFD700', '#FF6F00', '#4CAF50', '#E91E63', '#2196F3', '#FF5722', '#9C27B0', '#00BCD4', '#FFEB3B', '#8BC34A'];
+    const confettiEmojis = ['✨', '🌟', '🌸', '🕊️', '🎉', '🌼', '🌻', '☄️'];
+
+    function createConfettiParticle() {
+        const useEmoji = Math.random() < 0.15;
+        return {
+            x: Math.random() * confettiCanvas.width,
+            y: -20 - Math.random() * 100,
+            w: 6 + Math.random() * 6,
+            h: 4 + Math.random() * 4,
+            color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+            emoji: useEmoji ? confettiEmojis[Math.floor(Math.random() * confettiEmojis.length)] : null,
+            vy: 0.8 + Math.random() * 1.5,
+            vx: (Math.random() - 0.5) * 1.2,
+            rot: Math.random() * 360,
+            rotSpeed: (Math.random() - 0.5) * 6,
+            opacity: 0.7 + Math.random() * 0.3
+        };
+    }
+
+    function animateConfetti() {
+        if (!confettiRunning) return;
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+
+        // Add new particles occasionally
+        if (Math.random() < 0.3 && confettiParticles.length < 80) {
+            confettiParticles.push(createConfettiParticle());
+        }
+
+        for (let i = confettiParticles.length - 1; i >= 0; i--) {
+            const p = confettiParticles[i];
+            p.y += p.vy;
+            p.x += p.vx;
+            p.rot += p.rotSpeed;
+            p.opacity -= 0.001;
+
+            if (p.y > confettiCanvas.height + 20 || p.opacity <= 0) {
+                confettiParticles.splice(i, 1);
+                continue;
+            }
+
+            confettiCtx.save();
+            confettiCtx.translate(p.x, p.y);
+            confettiCtx.rotate(p.rot * Math.PI / 180);
+            confettiCtx.globalAlpha = p.opacity;
+            if (p.emoji) {
+                confettiCtx.font = '14px sans-serif';
+                confettiCtx.textAlign = 'center';
+                confettiCtx.fillText(p.emoji, 0, 0);
+            } else {
+                confettiCtx.fillStyle = p.color;
+                confettiCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            }
+            confettiCtx.restore();
+        }
+
+        confettiAnimId = requestAnimationFrame(animateConfetti);
+    }
+
+    function startConfetti() {
+        if (confettiRunning) return;
+        confettiRunning = true;
+        for (let i = 0; i < 30; i++) {
+            const p = createConfettiParticle();
+            p.y = Math.random() * confettiCanvas.height;
+            confettiParticles.push(p);
+        }
+        animateConfetti();
+    }
+
+    function stopConfetti() {
+        confettiRunning = false;
+        if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+        confettiParticles = [];
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    }
+
+    // Start confetti for Easter theme (default)
+    startConfetti();
+
+    console.log('🌅 Pawai Selebrasi Paskah - Remaja GMIM Zaitun Karoweru - Ready!');
+    console.log(`📍 ${stations.length} waypoints, drag to edit.`);
+    </script>
+</body>
+</html>
